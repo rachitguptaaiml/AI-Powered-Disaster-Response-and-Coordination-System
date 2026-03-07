@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Disaster Response</title>
+</head>
+
+<body>
+
+<h1>AI Disaster Response System</h1>
+
+<button onclick="predict()">Predict Disaster</button>
+
+<p id="result"></p>
+
+<script>
+
+async function predict(){
+
+let res = await fetch("http://localhost:8000/predict")
+
+let data = await res.json()
+
+document.getElementById("result").innerText =
+"Severity: "+data.severity
+
+}
+
+</script>
+
+</body>
+</html>
