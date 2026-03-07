@@ -1,14 +1,9 @@
-# AI Powered Disaster Response and Coordination System
+# Final Project Report
 
-This project is a prototype system that helps coordinate disaster response using AI.
+## System Overview
+The system integrates AI prediction models with a full stack web application to manage disaster response operations.
 
-Features:
-- AI based disaster severity prediction
-- SOS emergency request system
-- Full stack architecture
-
-Technologies:
-- FastAPI
-- Node.js
-- HTML
-- Machine Learning
+## Future Work
+- Real-time disaster maps
+- Integration with weather APIs
+- Mobile application
