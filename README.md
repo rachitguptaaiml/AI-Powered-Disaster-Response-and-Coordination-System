@@ -34,3 +34,11 @@ GET /sos → Retrieve SOS requests
 - AI-based disaster severity prediction
 - API-driven architecture
 - Role-based system design (Citizen/Admin)
+
+## System Workflow
+
+1. User enters disaster data
+2. AI predicts severity
+3. User sends SOS request
+4. Backend stores data
+5. Admin dashboard displays SOS alerts
