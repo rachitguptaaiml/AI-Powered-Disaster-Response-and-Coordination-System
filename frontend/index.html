@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>AI Disaster Response System</title>
+<title>AI Disaster Dashboard</title>
 
 <style>
 body{
@@ -11,8 +11,11 @@ color:white;
 text-align:center;
 }
 
-.container{
+.card{
+background:#1e293b;
+margin:20px;
 padding:20px;
+border-radius:10px;
 }
 
 input{
@@ -23,19 +26,11 @@ border:none;
 }
 
 button{
-padding:10px 15px;
+padding:10px;
 background:#22c55e;
-border:none;
 color:white;
+border:none;
 border-radius:5px;
-cursor:pointer;
-}
-
-.card{
-background:#1e293b;
-margin:20px;
-padding:20px;
-border-radius:10px;
 }
 </style>
 
@@ -45,13 +40,11 @@ border-radius:10px;
 
 <h1>🚨 AI Disaster Response Dashboard</h1>
 
-<div class="container">
-
 <div class="card">
-<h2>🌧 Predict Disaster Severity</h2>
+<h2>🌧 Predict Disaster</h2>
 
 <input id="rain" placeholder="Rainfall">
-<input id="wind" placeholder="Wind Speed">
+<input id="wind" placeholder="Wind">
 
 <button onclick="predict()">Predict</button>
 
@@ -61,21 +54,37 @@ border-radius:10px;
 <div class="card">
 <h2>🆘 Send SOS</h2>
 
-<input id="name" placeholder="Your Name">
-<input id="msg" placeholder="Emergency Message">
+<input id="name" placeholder="Name">
+<input id="msg" placeholder="Message">
 
-<button onclick="sendSOS()">Send SOS</button>
+<button onclick="sendSOS()">Send</button>
 </div>
 
 <div class="card">
-<h2>📊 View SOS Requests</h2>
+<h2>📊 View SOS</h2>
 
-<button onclick="loadSOS()">Load SOS Data</button>
+<button onclick="loadSOS()">Load Data</button>
 
 <pre id="sosData"></pre>
 </div>
 
+<div class="card">
+<h2>🗺️ Live Map</h2>
+
+<iframe 
+src="https://maps.google.com/maps?q=india&t=&z=5&ie=UTF8&iwloc=&output=embed"
+width="100%" height="300">
+</iframe>
+
 </div>
+
+<div class="card">
+<h2>📈 Prediction Stats</h2>
+
+<canvas id="chart"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 
@@ -107,7 +116,7 @@ headers:{"Content-Type":"application/json"},
 body:JSON.stringify({name,msg})
 })
 
-alert("SOS Sent Successfully")
+alert("SOS Sent")
 }
 
 async function loadSOS(){
@@ -117,6 +126,18 @@ let data = await res.text()
 
 document.getElementById("sosData").innerText = data
 }
+
+// Chart
+new Chart(document.getElementById("chart"), {
+type: 'bar',
+data: {
+labels: ['Low','Medium','High'],
+datasets: [{
+label: 'Predictions',
+data: [5,10,7]
+}]
+}
+});
 
 </script>
 
