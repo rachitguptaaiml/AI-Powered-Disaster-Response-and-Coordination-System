@@ -22,3 +22,8 @@ The system is now a working prototype with:
 - SOS handling system
 - Backend API
 - Basic data persistence
+
+## API Endpoints
+
+POST /sos → Store SOS request  
+GET /sos → Retrieve SOS requests
