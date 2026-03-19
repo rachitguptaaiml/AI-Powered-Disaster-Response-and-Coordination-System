@@ -84,7 +84,28 @@ width="100%" height="300">
 <canvas id="chart"></canvas>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"
+  const ctx = document.getElementById('myChart');
+
+new Chart(ctx, {
+type: 'bar',
+data: {
+labels: ['Low', 'Medium', 'High'],
+datasets: [{
+label: 'Predictions',
+data: [5, 10, 7],
+borderWidth: 1
+}]
+},
+options: {
+scales: {
+y: {
+beginAtZero: true
+}
+}
+}
+});>
+</script>
 
 <script>
 
