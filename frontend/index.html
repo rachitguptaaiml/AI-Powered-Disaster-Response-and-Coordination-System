@@ -16,6 +16,7 @@ background:#1e293b;
 margin:20px;
 padding:20px;
 border-radius:10px;
+box-shadow:0 0 10px rgba(0,0,0,0.5);
 }
 
 input{
@@ -31,6 +32,11 @@ background:#22c55e;
 color:white;
 border:none;
 border-radius:5px;
+cursor:pointer;
+}
+
+button:hover{
+background:#16a34a;
 }
 </style>
 
@@ -40,17 +46,19 @@ border-radius:5px;
 
 <h1>🚨 AI Disaster Response Dashboard</h1>
 
+<!-- Prediction -->
 <div class="card">
 <h2>🌧 Predict Disaster</h2>
 
 <input id="rain" placeholder="Rainfall">
-<input id="wind" placeholder="Wind">
+<input id="wind" placeholder="Wind Speed">
 
 <button onclick="predict()">Predict</button>
 
 <p id="result"></p>
 </div>
 
+<!-- SOS -->
 <div class="card">
 <h2>🆘 Send SOS</h2>
 
@@ -60,16 +68,18 @@ border-radius:5px;
 <button onclick="sendSOS()">Send</button>
 </div>
 
+<!-- View SOS -->
 <div class="card">
-<h2>📊 View SOS</h2>
+<h2>📊 View SOS Requests</h2>
 
 <button onclick="loadSOS()">Load Data</button>
 
 <pre id="sosData"></pre>
 </div>
 
+<!-- Map -->
 <div class="card">
-<h2>🗺️ Live Map</h2>
+<h2>🗺️ Live Disaster Map</h2>
 
 <iframe 
 src="https://maps.google.com/maps?q=india&t=&z=5&ie=UTF8&iwloc=&output=embed"
@@ -78,37 +88,19 @@ width="100%" height="300">
 
 </div>
 
+<!-- Graph -->
 <div class="card">
-<h2>📈 Prediction Stats</h2>
+<h2>📈 Prediction Statistics</h2>
 
 <canvas id="chart"></canvas>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"
-  const ctx = document.getElementById('myChart');
-
-new Chart(ctx, {
-type: 'bar',
-data: {
-labels: ['Low', 'Medium', 'High'],
-datasets: [{
-label: 'Predictions',
-data: [5, 10, 7],
-borderWidth: 1
-}]
-},
-options: {
-scales: {
-y: {
-beginAtZero: true
-}
-}
-}
-});>
-</script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 
+// 🔥 AI Prediction
 async function predict(){
 
 let rain = document.getElementById("rain").value
@@ -123,9 +115,10 @@ body:JSON.stringify({rainfall:rain,wind:wind})
 let data = await res.json()
 
 document.getElementById("result").innerText =
-"Severity: " + data.severity
+"⚠ Severity: " + data.severity
 }
 
+// 🚨 Send SOS
 async function sendSOS(){
 
 let name = document.getElementById("name").value
@@ -137,9 +130,10 @@ headers:{"Content-Type":"application/json"},
 body:JSON.stringify({name,msg})
 })
 
-alert("SOS Sent")
+alert("✅ SOS Sent Successfully")
 }
 
+// 📊 Load SOS
 async function loadSOS(){
 
 let res = await fetch("http://localhost:5000/sos")
@@ -148,15 +142,25 @@ let data = await res.text()
 document.getElementById("sosData").innerText = data
 }
 
-// Chart
-new Chart(document.getElementById("chart"), {
+// 📈 Chart
+const ctx = document.getElementById('chart');
+
+new Chart(ctx, {
 type: 'bar',
 data: {
 labels: ['Low','Medium','High'],
 datasets: [{
-label: 'Predictions',
-data: [5,10,7]
+label: 'Disaster Predictions',
+data: [5, 10, 7],
+borderWidth: 1
 }]
+},
+options: {
+scales: {
+y: {
+beginAtZero: true
+}
+}
 }
 });
 
