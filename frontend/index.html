@@ -1,33 +1,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Disaster Response</title>
+<title>AI Disaster Response System</title>
+
+<style>
+body{
+font-family: Arial;
+background:#0f172a;
+color:white;
+text-align:center;
+}
+
+.container{
+padding:20px;
+}
+
+input{
+padding:10px;
+margin:5px;
+border-radius:5px;
+border:none;
+}
+
+button{
+padding:10px 15px;
+background:#22c55e;
+border:none;
+color:white;
+border-radius:5px;
+cursor:pointer;
+}
+
+.card{
+background:#1e293b;
+margin:20px;
+padding:20px;
+border-radius:10px;
+}
+</style>
+
 </head>
 
 <body>
 
+<h1>🚨 AI Disaster Response Dashboard</h1>
+
+<div class="container">
+
+<div class="card">
+<h2>🌧 Predict Disaster Severity</h2>
+
+<input id="rain" placeholder="Rainfall">
+<input id="wind" placeholder="Wind Speed">
+
+<button onclick="predict()">Predict</button>
+
+<p id="result"></p>
+</div>
+
+<div class="card">
+<h2>🆘 Send SOS</h2>
+
 <input id="name" placeholder="Your Name">
 <input id="msg" placeholder="Emergency Message">
 
-<h1>AI Disaster Response System</h1>
-
-<button onclick="predict()">Predict Disaster</button>
-
 <button onclick="sendSOS()">Send SOS</button>
+</div>
 
-<p id="result"></p>
+<div class="card">
+<h2>📊 View SOS Requests</h2>
+
+<button onclick="loadSOS()">Load SOS Data</button>
+
+<pre id="sosData"></pre>
+</div>
+
+</div>
 
 <script>
 
 async function predict(){
 
-let res = await fetch("http://localhost:8000/predict")
+let rain = document.getElementById("rain").value
+let wind = document.getElementById("wind").value
+
+let res = await fetch("http://127.0.0.1:8000/predict",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({rainfall:rain,wind:wind})
+})
 
 let data = await res.json()
 
 document.getElementById("result").innerText =
-"Severity: "+data.severity
+"Severity: " + data.severity
+}
 
+async function sendSOS(){
+
+let name = document.getElementById("name").value
+let msg = document.getElementById("msg").value
+
+await fetch("http://localhost:5000/sos",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({name,msg})
+})
+
+alert("SOS Sent Successfully")
+}
+
+async function loadSOS(){
+
+let res = await fetch("http://localhost:5000/sos")
+let data = await res.text()
+
+document.getElementById("sosData").innerText = data
 }
 
 </script>
