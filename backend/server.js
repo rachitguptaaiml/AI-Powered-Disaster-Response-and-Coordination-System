@@ -20,6 +20,18 @@ app.get("/sos",(req,res)=>{
 res.sendFile(__dirname + "/sos.json")
 })
 
+app.get("/sos",(req,res)=>{
+
+const fs = require("fs")
+
+if(fs.existsSync("sos.json")){
+    res.sendFile(__dirname + "/sos.json")
+}else{
+    res.json({message:"No SOS requests yet"})
+}
+
+})
+
 app.listen(5000,()=>{
 console.log("Server running")
 })
