@@ -27,3 +27,10 @@ The system is now a working prototype with:
 
 POST /sos → Store SOS request  
 GET /sos → Retrieve SOS requests
+
+## Advanced Features
+
+- Real-time SOS monitoring dashboard
+- AI-based disaster severity prediction
+- API-driven architecture
+- Role-based system design (Citizen/Admin)
