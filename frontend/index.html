@@ -1,253 +1,137 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>AI Disaster Dashboard</title>
+    <title>AI Disaster Dashboard</title>
 
-<style>
-body{
-font-family: Arial;
-background:#0f172a;
-color:white;
-text-align:center;
-}
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
-.card{
-background:#1e293b;
-margin:20px;
-padding:20px;
-border-radius:10px;
-box-shadow:0 0 10px rgba(0,0,0,0.5);
-}
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+            text-align: center;
+        }
 
-input{
-padding:10px;
-margin:5px;
-border-radius:5px;
-border:none;
-}
+        h1 {
+            margin-top: 10px;
+        }
 
-button{
-padding:10px;
-background:#22c55e;
-color:white;
-border:none;
-border-radius:5px;
-cursor:pointer;
-}
+        #map {
+            height: 400px;
+            width: 90%;
+            margin: 20px auto;
+            border-radius: 10px;
+        }
 
-button:hover{
-background:#16a34a;
-}
+        .alert {
+            animation: blink 1s infinite;
+            color: red;
+            font-weight: bold;
+        }
 
-/* Toast */
-#toast{
-position:fixed;
-bottom:20px;
-right:20px;
-background:#22c55e;
-padding:15px;
-border-radius:8px;
-display:none;
-}
+        @keyframes blink {
+            50% { opacity: 0.3; }
+        }
 
-/* Popup */
-#popup{
-position:fixed;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-background:#1e293b;
-padding:30px;
-border-radius:10px;
-display:none;
-}
-
-/* Blinking alert */
-.alert{
-color:red;
-font-weight:bold;
-animation:blink 1s infinite;
-}
-
-@keyframes blink{
-0%{opacity:1;}
-50%{opacity:0;}
-100%{opacity:1;}
-}
-</style>
-
+        .card {
+            background: #1e293b;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+    </style>
 </head>
 
 <body>
 
-<h1>🚨 AI Disaster Response Dashboard</h1>
+<h1>🌍 AI Disaster Response Dashboard</h1>
 
-<div class="alert">⚠ LIVE ALERT SYSTEM ACTIVE</div>
+<div id="map"></div>
 
-<!-- Prediction -->
-<div class="card">
-<h2>🌧 Predict Disaster</h2>
+<div id="alerts"></div>
 
-<input id="rain" placeholder="Rainfall">
-<input id="wind" placeholder="Wind Speed">
-<input id="temp" placeholder="Temperature">
-<input id="pop" placeholder="Population Density">
-<input id="river" placeholder="River Level">
-
-<button onclick="predict()">Predict</button>
-
-<p id="result"></p>
-</div>
-
-<!-- SOS -->
-<div class="card">
-<h2>🆘 Send SOS</h2>
-
-<input id="name" placeholder="Name">
-<input id="msg" placeholder="Message">
-
-<button onclick="sendSOS(event)">Send</button>
-
-<p id="status"></p>
-</div>
-
-<!-- View SOS -->
-<div class="card">
-<h2>📊 View SOS Requests</h2>
-
-<pre id="sosData"></pre>
-</div>
-
-<!-- Map -->
-<div class="card">
-<h2>🗺️ Live Disaster Map</h2>
-
-<iframe 
-src="https://maps.google.com/maps?q=disaster%20zones&t=&z=5&ie=UTF8&iwloc=&output=embed"
-width="100%" height="300">
-</iframe>
-
-</div>
-
-<!-- Graph -->
-<div class="card">
-<h2>📈 Prediction Statistics</h2>
-<canvas id="chart"></canvas>
-</div>
-
-<!-- Toast -->
-<div id="toast"></div>
-
-<!-- Popup -->
-<div id="popup">
-<h2>✅ SOS Sent Successfully</h2>
-<button onclick="closePopup()">Close</button>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-// Toast
-function showToast(msg){
-let t = document.getElementById("toast")
-t.innerText = msg
-t.style.display = "block"
-setTimeout(()=>{t.style.display="none"},3000)
-}
+    // 🔹 Initialize Map
+    var map = L.map('map').setView([20.5937, 78.9629], 5);
 
-// Popup
-function showPopup(){
-document.getElementById("popup").style.display="block"
-}
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    }).addTo(map);
 
-function closePopup(){
-document.getElementById("popup").style.display="none"
-}
+    let markers = [];
 
-// Prediction
-async function predict(){
-let rain = document.getElementById("rain").value
-let wind = document.getElementById("wind").value
+    // 🔹 Fake real-time disaster data (can replace with real API)
+    function getDisasterData() {
+        return [
+            {
+                location: "Delhi",
+                lat: 28.61,
+                lon: 77.23,
+                severity: "HIGH",
+                type: "Flood"
+            },
+            {
+                location: "Mumbai",
+                lat: 19.07,
+                lon: 72.87,
+                severity: "MEDIUM",
+                type: "Cyclone"
+            },
+            {
+                location: "Assam",
+                lat: 26.20,
+                lon: 92.93,
+                severity: "HIGH",
+                type: "Flood"
+            }
+        ];
+    }
 
-let res = await fetch("http://127.0.0.1:8000/predict",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({rainfall:rain,wind:wind})
-})
+    // 🔹 Update Map
+    function updateMap() {
 
-let data = await res.json()
-document.getElementById("result").innerText = "⚠ Severity: " + data.severity
-}
+        // Remove old markers
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
 
-// SOS
-async function sendSOS(event){
+        let data = getDisasterData();
 
-let name = document.getElementById("name").value.trim()
-let msg = document.getElementById("msg").value.trim()
+        let alertHTML = "";
 
-if(name==="" || msg===""){
-showToast("❌ Fill all fields")
-return
-}
+        data.forEach(d => {
 
-if(msg.length<5){
-showToast("❌ Message too short")
-return
-}
+            let color = d.severity === "HIGH" ? "red" : "orange";
 
-let btn = event.target
-btn.innerText="Sending..."
-btn.disabled=true
+            let marker = L.circleMarker([d.lat, d.lon], {
+                color: color,
+                radius: 10
+            }).addTo(map);
 
-try{
-await fetch("http://localhost:5000/sos",{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"authorization":"12345"
-},
-body:JSON.stringify({name,msg})
-})
+            marker.bindPopup(
+                `<b>${d.location}</b><br>${d.type}<br><b>${d.severity}</b>`
+            );
 
-showToast("✅ SOS Sent")
-showPopup()
+            markers.push(marker);
 
-document.getElementById("status").innerText =
-"Sent at " + new Date().toLocaleTimeString()
+            // Alerts
+            alertHTML += `<div class="card alert">
+                🚨 ${d.type} in ${d.location} - ${d.severity}
+            </div>`;
+        });
 
-document.getElementById("name").value=""
-document.getElementById("msg").value=""
+        document.getElementById("alerts").innerHTML = alertHTML;
+    }
 
-}catch{
-showToast("❌ Error sending SOS")
-}
+    // 🔹 Auto update every 5 sec
+    setInterval(updateMap, 5000);
 
-btn.innerText="Send"
-btn.disabled=false
-}
-
-// Load SOS
-async function loadSOS(){
-let res = await fetch("http://localhost:5000/sos")
-let data = await res.text()
-document.getElementById("sosData").innerText = data
-}
-
-// Real-time update
-setInterval(loadSOS,3000)
-
-// Chart
-new Chart(document.getElementById('chart'),{
-type:'bar',
-data:{
-labels:['Low','Medium','High'],
-datasets:[{
-label:'Predictions',
-data:[5,10,7]
-}]
-}
-})
+    updateMap();
 
 </script>
 
