@@ -38,6 +38,42 @@ cursor:pointer;
 button:hover{
 background:#16a34a;
 }
+
+/* Toast */
+#toast{
+position:fixed;
+bottom:20px;
+right:20px;
+background:#22c55e;
+padding:15px;
+border-radius:8px;
+display:none;
+}
+
+/* Popup */
+#popup{
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:#1e293b;
+padding:30px;
+border-radius:10px;
+display:none;
+}
+
+/* Blinking alert */
+.alert{
+color:red;
+font-weight:bold;
+animation:blink 1s infinite;
+}
+
+@keyframes blink{
+0%{opacity:1;}
+50%{opacity:0;}
+100%{opacity:1;}
+}
 </style>
 
 </head>
@@ -45,6 +81,8 @@ background:#16a34a;
 <body>
 
 <h1>🚨 AI Disaster Response Dashboard</h1>
+
+<div class="alert">⚠ LIVE ALERT SYSTEM ACTIVE</div>
 
 <!-- Prediction -->
 <div class="card">
@@ -65,14 +103,14 @@ background:#16a34a;
 <input id="name" placeholder="Name">
 <input id="msg" placeholder="Message">
 
-<button onclick="sendSOS()">Send</button>
+<button onclick="sendSOS(event)">Send</button>
+
+<p id="status"></p>
 </div>
 
 <!-- View SOS -->
 <div class="card">
 <h2>📊 View SOS Requests</h2>
-
-<button onclick="loadSOS()">Load Data</button>
 
 <pre id="sosData"></pre>
 </div>
@@ -82,7 +120,7 @@ background:#16a34a;
 <h2>🗺️ Live Disaster Map</h2>
 
 <iframe 
-src="https://maps.google.com/maps?q=india&t=&z=5&ie=UTF8&iwloc=&output=embed"
+src="https://maps.google.com/maps?q=disaster%20zones&t=&z=5&ie=UTF8&iwloc=&output=embed"
 width="100%" height="300">
 </iframe>
 
@@ -91,18 +129,41 @@ width="100%" height="300">
 <!-- Graph -->
 <div class="card">
 <h2>📈 Prediction Statistics</h2>
-
 <canvas id="chart"></canvas>
 </div>
 
-<!-- Chart.js -->
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Popup -->
+<div id="popup">
+<h2>✅ SOS Sent Successfully</h2>
+<button onclick="closePopup()">Close</button>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 
-// 🔥 AI Prediction
-async function predict(){
+// Toast
+function showToast(msg){
+let t = document.getElementById("toast")
+t.innerText = msg
+t.style.display = "block"
+setTimeout(()=>{t.style.display="none"},3000)
+}
 
+// Popup
+function showPopup(){
+document.getElementById("popup").style.display="block"
+}
+
+function closePopup(){
+document.getElementById("popup").style.display="none"
+}
+
+// Prediction
+async function predict(){
 let rain = document.getElementById("rain").value
 let wind = document.getElementById("wind").value
 
@@ -113,56 +174,77 @@ body:JSON.stringify({rainfall:rain,wind:wind})
 })
 
 let data = await res.json()
-
-document.getElementById("result").innerText =
-"⚠ Severity: " + data.severity
+document.getElementById("result").innerText = "⚠ Severity: " + data.severity
 }
 
-// 🚨 Send SOS
-async function sendSOS(){
+// SOS
+async function sendSOS(event){
 
-let name = document.getElementById("name").value
-let msg = document.getElementById("msg").value
+let name = document.getElementById("name").value.trim()
+let msg = document.getElementById("msg").value.trim()
 
+if(name==="" || msg===""){
+showToast("❌ Fill all fields")
+return
+}
+
+if(msg.length<5){
+showToast("❌ Message too short")
+return
+}
+
+let btn = event.target
+btn.innerText="Sending..."
+btn.disabled=true
+
+try{
 await fetch("http://localhost:5000/sos",{
 method:"POST",
-headers:{"Content-Type":"application/json"},
+headers:{
+"Content-Type":"application/json",
+"authorization":"12345"
+},
 body:JSON.stringify({name,msg})
 })
 
-alert("✅ SOS Sent Successfully")
+showToast("✅ SOS Sent")
+showPopup()
+
+document.getElementById("status").innerText =
+"Sent at " + new Date().toLocaleTimeString()
+
+document.getElementById("name").value=""
+document.getElementById("msg").value=""
+
+}catch{
+showToast("❌ Error sending SOS")
 }
 
-// 📊 Load SOS
-async function loadSOS(){
+btn.innerText="Send"
+btn.disabled=false
+}
 
+// Load SOS
+async function loadSOS(){
 let res = await fetch("http://localhost:5000/sos")
 let data = await res.text()
-
 document.getElementById("sosData").innerText = data
 }
 
-// 📈 Chart
-const ctx = document.getElementById('chart');
+// Real-time update
+setInterval(loadSOS,3000)
 
-new Chart(ctx, {
-type: 'bar',
-data: {
-labels: ['Low','Medium','High'],
-datasets: [{
-label: 'Disaster Predictions',
-data: [5, 10, 7],
-borderWidth: 1
+// Chart
+new Chart(document.getElementById('chart'),{
+type:'bar',
+data:{
+labels:['Low','Medium','High'],
+datasets:[{
+label:'Predictions',
+data:[5,10,7]
 }]
-},
-options: {
-scales: {
-y: {
-beginAtZero: true
 }
-}
-}
-});
+})
 
 </script>
 
