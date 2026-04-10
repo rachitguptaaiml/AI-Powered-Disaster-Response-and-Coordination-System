@@ -1,37 +1,61 @@
-const fs = require("fs")
 const express = require("express")
+const fs = require("fs")
 const app = express()
 
 app.use(express.json())
 
-let sos = []
+const API_KEY = "12345"
 
+// POST SOS
 app.post("/sos",(req,res)=>{
 
-let data = req.body
+try{
 
-fs.writeFileSync("sos.json", JSON.stringify(data, null, 2))
+if(req.headers.authorization !== API_KEY){
+return res.status(403).json({message:"Unauthorized"})
+}
 
-res.json({message:"SOS Stored Successfully"})
+if(!req.body.name || !req.body.msg){
+return res.json({message:"Invalid input"})
+}
 
-})
+if(req.body.msg.length < 5){
+return res.json({message:"Message too short"})
+}
 
-app.get("/sos",(req,res)=>{
-res.sendFile(__dirname + "/sos.json")
-})
-
-app.get("/sos",(req,res)=>{
-
-const fs = require("fs")
+let data = []
 
 if(fs.existsSync("sos.json")){
-    res.sendFile(__dirname + "/sos.json")
+data = JSON.parse(fs.readFileSync("sos.json"))
+}
+
+data.push({
+name:req.body.name,
+msg:req.body.msg,
+time:new Date()
+})
+
+fs.writeFileSync("sos.json",JSON.stringify(data,null,2))
+
+res.json({message:"Stored"})
+
+}catch{
+res.status(500).json({message:"Server error"})
+}
+
+})
+
+// GET SOS
+app.get("/sos",(req,res)=>{
+
+if(fs.existsSync("sos.json")){
+res.sendFile(__dirname + "/sos.json")
 }else{
-    res.json({message:"No SOS requests yet"})
+res.json({message:"No SOS"})
 }
 
 })
 
 app.listen(5000,()=>{
-console.log("Server running")
+console.log("Server running on port 5000")
 })
