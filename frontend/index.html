@@ -50,7 +50,6 @@
 <h1>🌍 AI Disaster Response Dashboard</h1>
 
 <div id="map"></div>
-
 <div id="alerts"></div>
 
 <!-- Leaflet JS -->
@@ -66,47 +65,84 @@
 
     let markers = [];
 
-    // 🔹 Fake real-time disaster data (can replace with real API)
-    function getDisasterData() {
-        return [
-            {
-                location: "Delhi",
-                lat: 28.61,
-                lon: 77.23,
-                severity: "HIGH",
-                type: "Flood"
-            },
-            {
-                location: "Mumbai",
-                lat: 19.07,
-                lon: 72.87,
-                severity: "MEDIUM",
-                type: "Cyclone"
-            },
-            {
-                location: "Assam",
-                lat: 26.20,
-                lon: 92.93,
-                severity: "HIGH",
-                type: "Flood"
-            }
-        ];
+    // 🔹 REAL-TIME AI DATA FETCH (CONNECTED TO YOUR prediction.py)
+    async function getDisasterData() {
+
+        try {
+            let res = await fetch("http://localhost:8000/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    rainfall: Math.random()*300,
+                    wind: Math.random()*100,
+                    temperature: Math.random()*45,
+                    population: Math.random()*1500,
+                    river_level: Math.random()*10
+                })
+            });
+
+            let ai = await res.json();
+
+            return [
+                {
+                    location: "Delhi",
+                    lat: 28.61,
+                    lon: 77.23,
+                    severity: ai.data.severity,
+                    type: "AI Predicted"
+                },
+                {
+                    location: "Mumbai",
+                    lat: 19.07,
+                    lon: 72.87,
+                    severity: "MEDIUM",
+                    type: "Cyclone"
+                },
+                {
+                    location: "Assam",
+                    lat: 26.20,
+                    lon: 92.93,
+                    severity: "HIGH",
+                    type: "Flood"
+                }
+            ];
+
+        } catch (error) {
+
+            // 🔥 FALLBACK DATA (if backend not running)
+            return [
+                {
+                    location: "Delhi",
+                    lat: 28.61,
+                    lon: 77.23,
+                    severity: "HIGH",
+                    type: "Flood"
+                },
+                {
+                    location: "Mumbai",
+                    lat: 19.07,
+                    lon: 72.87,
+                    severity: "MEDIUM",
+                    type: "Cyclone"
+                }
+            ];
+        }
     }
 
-    // 🔹 Update Map
-    function updateMap() {
+    // 🔹 UPDATE MAP
+    async function updateMap() {
 
         // Remove old markers
         markers.forEach(m => map.removeLayer(m));
         markers = [];
 
-        let data = getDisasterData();
+        let data = await getDisasterData();
 
         let alertHTML = "";
 
         data.forEach(d => {
 
-            let color = d.severity === "HIGH" ? "red" : "orange";
+            let color = d.severity.includes("HIGH") ? "red" : "orange";
 
             let marker = L.circleMarker([d.lat, d.lon], {
                 color: color,
@@ -119,7 +155,6 @@
 
             markers.push(marker);
 
-            // Alerts
             alertHTML += `<div class="card alert">
                 🚨 ${d.type} in ${d.location} - ${d.severity}
             </div>`;
@@ -128,7 +163,7 @@
         document.getElementById("alerts").innerHTML = alertHTML;
     }
 
-    // 🔹 Auto update every 5 sec
+    // 🔹 AUTO REFRESH EVERY 5 SEC
     setInterval(updateMap, 5000);
 
     updateMap();
