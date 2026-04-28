@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>SOS System</title>
+<title>Real-Time SOS Dashboard</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
 body{
@@ -11,24 +13,24 @@ font-family:Arial;
 text-align:center;
 }
 
-input{
+#map{
+height:400px;
+width:90%;
+margin:auto;
+}
+
+input,button{
 padding:10px;
 margin:5px;
 }
 
-button{
-padding:10px;
-margin:5px;
-background:green;
-color:white;
-border:none;
+.alert{
+color:red;
+animation:blink 1s infinite;
 }
 
-.card{
-background:#1e293b;
-margin:10px;
-padding:10px;
-border-radius:8px;
+@keyframes blink{
+50%{opacity:0.3;}
 }
 </style>
 
@@ -36,71 +38,81 @@ border-radius:8px;
 
 <body>
 
-<h1>🚨 SOS Management System</h1>
-
-<h2>Send SOS</h2>
+<h1>🚨 Real-Time SOS Dashboard</h1>
 
 <input id="name" placeholder="Name">
 <input id="msg" placeholder="Message">
-
 <button onclick="sendSOS()">Send SOS</button>
 
-<h2>All SOS Requests</h2>
+<div id="map"></div>
 
-<button onclick="loadSOS()">Load SOS</button>
+<div id="alerts"></div>
 
-<div id="sosList"></div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
+
+// 🔹 MAP
+const map = L.map('map').setView([22,78],5);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{x}.png').addTo(map);
+
+let markers = {};
+
+// 🔹 WEBSOCKET
+const socket = new WebSocket("ws://localhost:5000");
+
+socket.onmessage = function(event){
+    const msg = JSON.parse(event.data);
+
+    if(msg.type==="NEW_SOS"){
+        addMarker(msg.data);
+    }
+
+    if(msg.type==="UPDATE_SOS"){
+        addMarker(msg.data);
+    }
+};
+
+// 🔹 ADD MARKER
+function addMarker(sos){
+
+    if(markers[sos._id]){
+        map.removeLayer(markers[sos._id]);
+    }
+
+    let color = sos.status==="NEW" ? "red" : "green";
+
+    let marker = L.circleMarker([sos.lat,sos.lon],{
+        color:color,
+        radius:10
+    }).addTo(map);
+
+    marker.bindPopup(`
+        <b>${sos.name}</b><br>
+        ${sos.message}<br>
+        Status: ${sos.status}
+    `);
+
+    markers[sos._id]=marker;
+
+    document.getElementById("alerts").innerHTML +=
+    `<div class="alert">🚨 ${sos.name}: ${sos.message}</div>`;
+}
 
 // 🔹 SEND SOS
 async function sendSOS(){
 
-let name=document.getElementById("name").value.trim()
-let msg=document.getElementById("msg").value.trim()
-
-if(name===""||msg===""){
-alert("Fill all fields")
-return
-}
-
-if(msg.length<5){
-alert("Message too short")
-return
-}
+let name=document.getElementById("name").value
+let msg=document.getElementById("msg").value
 
 await fetch("http://localhost:5000/sos",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-name,
-message:msg,
-location:"User Location"
-})
+body:JSON.stringify({name,message:msg})
 })
 
 alert("SOS Sent")
-}
-
-// 🔹 LOAD SOS
-async function loadSOS(){
-
-let res=await fetch("http://localhost:5000/sos")
-let data=await res.json()
-
-let html=""
-
-data.forEach(d=>{
-html+=`
-<div class="card">
-<b>${d.name}</b><br>
-${d.message}<br>
-Status: ${d.status}
-</div>
-`
-})
-
-document.getElementById("sosList").innerHTML=html
 }
 
 </script>
