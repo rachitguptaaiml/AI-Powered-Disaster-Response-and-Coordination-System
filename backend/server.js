@@ -1,61 +1,82 @@
-const express = require("express")
-const fs = require("fs")
-const app = express()
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
 
-app.use(express.json())
+const app = express();
+app.use(express.json());
+app.use(cors());
 
-const API_KEY = "12345"
+// 🔹 MongoDB connection
+mongoose.connect("mongodb://127.0.0.1:27017/disasterDB")
+.then(()=>console.log("MongoDB Connected"))
+.catch(err=>console.log(err));
 
-// POST SOS
-app.post("/sos",(req,res)=>{
+// 🔹 Schema
+const sosSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    message: { type: String, required: true },
+    location: { type: String, default: "Unknown" },
+    status: { type: String, default: "NEW" },
+    createdAt: { type: Date, default: Date.now }
+});
 
-try{
+const SOS = mongoose.model("SOS", sosSchema);
 
-if(req.headers.authorization !== API_KEY){
-return res.status(403).json({message:"Unauthorized"})
-}
+// 🔹 CREATE SOS
+app.post("/sos", async (req, res) => {
+    try {
+        const { name, message, location } = req.body;
 
-if(!req.body.name || !req.body.msg){
-return res.json({message:"Invalid input"})
-}
+        if (!name || !message) {
+            return res.status(400).json({ error: "Missing fields" });
+        }
 
-if(req.body.msg.length < 5){
-return res.json({message:"Message too short"})
-}
+        if (message.length < 5) {
+            return res.status(400).json({ error: "Message too short" });
+        }
 
-let data = []
+        const sos = new SOS({ name, message, location });
+        await sos.save();
 
-if(fs.existsSync("sos.json")){
-data = JSON.parse(fs.readFileSync("sos.json"))
-}
+        res.json({ success: true, data: sos });
 
-data.push({
-name:req.body.name,
-msg:req.body.msg,
-time:new Date()
-})
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
-fs.writeFileSync("sos.json",JSON.stringify(data,null,2))
+// 🔹 GET SOS
+app.get("/sos", async (req, res) => {
+    try {
+        const data = await SOS.find().sort({ createdAt: -1 });
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
-res.json({message:"Stored"})
+// 🔹 UPDATE STATUS
+app.put("/sos/:id", async (req, res) => {
+    try {
+        const updated = await SOS.findByIdAndUpdate(
+            req.params.id,
+            { status: req.body.status },
+            { new: true }
+        );
+        res.json(updated);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
-}catch{
-res.status(500).json({message:"Server error"})
-}
+// 🔹 DELETE
+app.delete("/sos/:id", async (req, res) => {
+    try {
+        await SOS.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
-})
-
-// GET SOS
-app.get("/sos",(req,res)=>{
-
-if(fs.existsSync("sos.json")){
-res.sendFile(__dirname + "/sos.json")
-}else{
-res.json({message:"No SOS"})
-}
-
-})
-
-app.listen(5000,()=>{
-console.log("Server running on port 5000")
-})
+app.listen(5000, () => console.log("Server running on 5000"));
