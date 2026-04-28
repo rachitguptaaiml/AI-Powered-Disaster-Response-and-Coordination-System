@@ -1,172 +1,107 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Disaster Dashboard</title>
+<title>SOS System</title>
 
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<style>
+body{
+background:#0f172a;
+color:white;
+font-family:Arial;
+text-align:center;
+}
 
-    <style>
-        body {
-            font-family: Arial;
-            background: #0f172a;
-            color: white;
-            text-align: center;
-        }
+input{
+padding:10px;
+margin:5px;
+}
 
-        h1 {
-            margin-top: 10px;
-        }
+button{
+padding:10px;
+margin:5px;
+background:green;
+color:white;
+border:none;
+}
 
-        #map {
-            height: 400px;
-            width: 90%;
-            margin: 20px auto;
-            border-radius: 10px;
-        }
+.card{
+background:#1e293b;
+margin:10px;
+padding:10px;
+border-radius:8px;
+}
+</style>
 
-        .alert {
-            animation: blink 1s infinite;
-            color: red;
-            font-weight: bold;
-        }
-
-        @keyframes blink {
-            50% { opacity: 0.3; }
-        }
-
-        .card {
-            background: #1e293b;
-            padding: 15px;
-            margin: 10px;
-            border-radius: 10px;
-            display: inline-block;
-        }
-    </style>
 </head>
 
 <body>
 
-<h1>🌍 AI Disaster Response Dashboard</h1>
+<h1>🚨 SOS Management System</h1>
 
-<div id="map"></div>
-<div id="alerts"></div>
+<h2>Send SOS</h2>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<input id="name" placeholder="Name">
+<input id="msg" placeholder="Message">
+
+<button onclick="sendSOS()">Send SOS</button>
+
+<h2>All SOS Requests</h2>
+
+<button onclick="loadSOS()">Load SOS</button>
+
+<div id="sosList"></div>
 
 <script>
 
-    // 🔹 Initialize Map
-    var map = L.map('map').setView([20.5937, 78.9629], 5);
+// 🔹 SEND SOS
+async function sendSOS(){
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    }).addTo(map);
+let name=document.getElementById("name").value.trim()
+let msg=document.getElementById("msg").value.trim()
 
-    let markers = [];
+if(name===""||msg===""){
+alert("Fill all fields")
+return
+}
 
-    // 🔹 REAL-TIME AI DATA FETCH (CONNECTED TO YOUR prediction.py)
-    async function getDisasterData() {
+if(msg.length<5){
+alert("Message too short")
+return
+}
 
-        try {
-            let res = await fetch("http://localhost:8000/predict", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    rainfall: Math.random()*300,
-                    wind: Math.random()*100,
-                    temperature: Math.random()*45,
-                    population: Math.random()*1500,
-                    river_level: Math.random()*10
-                })
-            });
+await fetch("http://localhost:5000/sos",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+name,
+message:msg,
+location:"User Location"
+})
+})
 
-            let ai = await res.json();
+alert("SOS Sent")
+}
 
-            return [
-                {
-                    location: "Delhi",
-                    lat: 28.61,
-                    lon: 77.23,
-                    severity: ai.data.severity,
-                    type: "AI Predicted"
-                },
-                {
-                    location: "Mumbai",
-                    lat: 19.07,
-                    lon: 72.87,
-                    severity: "MEDIUM",
-                    type: "Cyclone"
-                },
-                {
-                    location: "Assam",
-                    lat: 26.20,
-                    lon: 92.93,
-                    severity: "HIGH",
-                    type: "Flood"
-                }
-            ];
+// 🔹 LOAD SOS
+async function loadSOS(){
 
-        } catch (error) {
+let res=await fetch("http://localhost:5000/sos")
+let data=await res.json()
 
-            // 🔥 FALLBACK DATA (if backend not running)
-            return [
-                {
-                    location: "Delhi",
-                    lat: 28.61,
-                    lon: 77.23,
-                    severity: "HIGH",
-                    type: "Flood"
-                },
-                {
-                    location: "Mumbai",
-                    lat: 19.07,
-                    lon: 72.87,
-                    severity: "MEDIUM",
-                    type: "Cyclone"
-                }
-            ];
-        }
-    }
+let html=""
 
-    // 🔹 UPDATE MAP
-    async function updateMap() {
+data.forEach(d=>{
+html+=`
+<div class="card">
+<b>${d.name}</b><br>
+${d.message}<br>
+Status: ${d.status}
+</div>
+`
+})
 
-        // Remove old markers
-        markers.forEach(m => map.removeLayer(m));
-        markers = [];
-
-        let data = await getDisasterData();
-
-        let alertHTML = "";
-
-        data.forEach(d => {
-
-            let color = d.severity.includes("HIGH") ? "red" : "orange";
-
-            let marker = L.circleMarker([d.lat, d.lon], {
-                color: color,
-                radius: 10
-            }).addTo(map);
-
-            marker.bindPopup(
-                `<b>${d.location}</b><br>${d.type}<br><b>${d.severity}</b>`
-            );
-
-            markers.push(marker);
-
-            alertHTML += `<div class="card alert">
-                🚨 ${d.type} in ${d.location} - ${d.severity}
-            </div>`;
-        });
-
-        document.getElementById("alerts").innerHTML = alertHTML;
-    }
-
-    // 🔹 AUTO REFRESH EVERY 5 SEC
-    setInterval(updateMap, 5000);
-
-    updateMap();
+document.getElementById("sosList").innerHTML=html
+}
 
 </script>
 
