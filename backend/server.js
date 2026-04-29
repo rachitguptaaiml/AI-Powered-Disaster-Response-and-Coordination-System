@@ -11,22 +11,18 @@ const wss = new WebSocket.Server({ server });
 app.use(express.json());
 app.use(cors());
 
-/* ===============================
-   🔹 DATABASE CONNECTION
-================================ */
+// ---------------- DB CONNECTION ----------------
 mongoose.connect("mongodb://127.0.0.1:27017/disasterDB")
-.then(()=>console.log("MongoDB Connected"))
-.catch(err=>{
-    console.error("DB Error:", err.message);
+.then(() => console.log("DB connected"))
+.catch(err => {
+    console.log("DB error:", err.message);
     process.exit(1);
 });
 
-/* ===============================
-   🔹 SCHEMA & MODEL
-================================ */
+// ---------------- MODEL ----------------
 const sosSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    message: { type: String, required: true },
+    name: String,
+    message: String,
     location: { type: String, default: "India" },
     lat: Number,
     lon: Number,
@@ -36,150 +32,107 @@ const sosSchema = new mongoose.Schema({
 
 const SOS = mongoose.model("SOS", sosSchema);
 
-/* ===============================
-   🔹 WEBSOCKET BROADCAST
-================================ */
-function broadcast(data){
-    wss.clients.forEach(client=>{
-        if(client.readyState === WebSocket.OPEN){
-            client.send(JSON.stringify(data));
+// ---------------- WEBSOCKET ----------------
+function sendToClients(payload) {
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(payload));
         }
     });
 }
 
-/* ===============================
-   🔹 ROUTES
-================================ */
+wss.on("connection", () => {
+    console.log("Client connected (WS)");
+});
 
-/**
- * @route   POST /sos
- * @desc    Create SOS request
- */
-app.post("/sos", async (req,res,next)=>{
-    try{
+// ---------------- ROUTES ----------------
+
+// create SOS
+app.post("/sos", async (req, res) => {
+    try {
         const { name, message } = req.body;
 
-        if(!name || !message){
-            return res.status(400).json({ error:"Name & message required" });
+        if (!name || !message) {
+            return res.status(400).json({ error: "Missing name or message" });
         }
 
-        if(message.length < 5){
-            return res.status(400).json({ error:"Message too short" });
+        if (message.length < 5) {
+            return res.status(400).json({ error: "Message too short" });
         }
 
-        const sos = new SOS({
+        const newSOS = new SOS({
             name,
             message,
-            lat: 20 + Math.random()*10,
-            lon: 75 + Math.random()*10
+            lat: 20 + Math.random() * 10,
+            lon: 75 + Math.random() * 10
         });
 
-        await sos.save();
+        await newSOS.save();
 
-        broadcast({ type:"NEW_SOS", data:sos });
+        sendToClients({ type: "NEW", data: newSOS });
 
-        res.status(201).json({
-            success:true,
-            data:sos
-        });
+        res.status(201).json(newSOS);
 
-    }catch(err){
-        next(err);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
-/**
- * @route   GET /sos
- * @desc    Get all SOS requests
- */
-app.get("/sos", async (req,res,next)=>{
-    try{
-        const data = await SOS.find().sort({createdAt:-1});
-        res.json({ count:data.length, data });
-    }catch(err){
-        next(err);
+// get all SOS
+app.get("/sos", async (req, res) => {
+    try {
+        const list = await SOS.find().sort({ createdAt: -1 });
+        res.json(list);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
-/**
- * @route   PUT /sos/:id
- * @desc    Update SOS status
- */
-app.put("/sos/:id", async (req,res,next)=>{
-    try{
+// update status
+app.put("/sos/:id", async (req, res) => {
+    try {
         const updated = await SOS.findByIdAndUpdate(
             req.params.id,
-            { status:req.body.status },
-            { new:true }
+            { status: req.body.status },
+            { new: true }
         );
 
-        if(!updated){
-            return res.status(404).json({ error:"SOS not found" });
+        if (!updated) {
+            return res.status(404).json({ error: "Not found" });
         }
 
-        broadcast({ type:"UPDATE_SOS", data:updated });
+        sendToClients({ type: "UPDATE", data: updated });
 
-        res.json({ success:true, data:updated });
+        res.json(updated);
 
-    }catch(err){
-        next(err);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
-/**
- * @route   DELETE /sos/:id
- * @desc    Delete SOS
- */
-app.delete("/sos/:id", async (req,res,next)=>{
-    try{
-        const deleted = await SOS.findByIdAndDelete(req.params.id);
-
-        if(!deleted){
-            return res.status(404).json({ error:"SOS not found" });
-        }
-
-        res.json({ success:true, message:"Deleted" });
-
-    }catch(err){
-        next(err);
+// delete
+app.delete("/sos/:id", async (req, res) => {
+    try {
+        await SOS.findByIdAndDelete(req.params.id);
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
-/* ===============================
-   🔹 API DOCUMENTATION ROUTE
-================================ */
-app.get("/docs", (req,res)=>{
+// simple docs route
+app.get("/docs", (req, res) => {
     res.json({
         endpoints: [
-            { method:"POST", route:"/sos", body:"{name, message}" },
-            { method:"GET", route:"/sos" },
-            { method:"PUT", route:"/sos/:id", body:"{status}" },
-            { method:"DELETE", route:"/sos/:id" }
-        ],
-        websocket: "ws://localhost:5000"
+            "POST /sos",
+            "GET /sos",
+            "PUT /sos/:id",
+            "DELETE /sos/:id"
+        ]
     });
 });
 
-/* ===============================
-   🔹 GLOBAL ERROR HANDLER
-================================ */
-app.use((err, req, res, next)=>{
-    console.error("Error:", err.message);
-
-    res.status(500).json({
-        success:false,
-        error:"Internal Server Error",
-        details: err.message
-    });
-});
-
-/* ===============================
-   🔹 SERVER START
-================================ */
-wss.on("connection", ()=>{
-    console.log("WebSocket client connected");
-});
-
-server.listen(5000, ()=>{
+// ---------------- START SERVER ----------------
+server.listen(5000, () => {
     console.log("Server running on port 5000");
 });
