@@ -173,3 +173,5 @@ This project was built to understand:
 ## Author
 
 Rachit Gupta
+Yashi Rajoriya
+Devansh Mishra
